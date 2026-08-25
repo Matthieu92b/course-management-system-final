@@ -6,6 +6,7 @@ import org.example.coursemanagementsystem.entity.StudyProgram;
 import org.example.coursemanagementsystem.service.StudyProgramService;
 import org.springframework.web.bind.annotation.*;
 import org.example.coursemanagementsystem.dto.ActiveCourseSummaryDto;
+import org.example.coursemanagementsystem.dto.StudyProgramDetailDto;
 import java.util.List;
 
 
@@ -46,5 +47,10 @@ public class StudyProgramController {
     @GetMapping("/{id}/courses")
     public List<ActiveCourseSummaryDto> getCoursesForProgram(@PathVariable int id) {
         return studyProgramService.getCoursesForProgram(id);
+    }
+
+    @GetMapping("/{id}/detail")
+    public StudyProgramDetailDto getStudyProgramDetail(@PathVariable int id) {
+        return studyProgramService.getStudyProgramDetail(id);
     }
 }
