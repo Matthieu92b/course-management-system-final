@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -58,18 +58,24 @@ const OVERLOAD_THRESHOLD_HOURS = 200;
     <div class="stats-grid">
       <div class="card chart-card">
         <h3>Teaching load per lecturer (hours)</h3>
-        <div class="spinner-wrap" *ngIf="loadingCharts"><app-spinner></app-spinner></div>
-        <canvas #loadChart [style.display]="loadingCharts ? 'none' : 'block'"></canvas>
+        <div class="chart-canvas-wrap">
+          <div class="spinner-wrap chart-spinner-overlay" *ngIf="loadingCharts"><app-spinner></app-spinner></div>
+          <canvas #loadChart></canvas>
+        </div>
       </div>
       <div class="card chart-card">
         <h3>Active courses per program</h3>
-        <div class="spinner-wrap" *ngIf="loadingCharts"><app-spinner></app-spinner></div>
-        <canvas #programChart [style.display]="loadingCharts ? 'none' : 'block'"></canvas>
+        <div class="chart-canvas-wrap">
+          <div class="spinner-wrap chart-spinner-overlay" *ngIf="loadingCharts"><app-spinner></app-spinner></div>
+          <canvas #programChart></canvas>
+        </div>
       </div>
       <div class="card chart-card">
         <h3>Sections per type</h3>
-        <div class="spinner-wrap" *ngIf="loadingCharts"><app-spinner></app-spinner></div>
-        <canvas #typeChart [style.display]="loadingCharts ? 'none' : 'block'"></canvas>
+        <div class="chart-canvas-wrap">
+          <div class="spinner-wrap chart-spinner-overlay" *ngIf="loadingCharts"><app-spinner></app-spinner></div>
+          <canvas #typeChart></canvas>
+        </div>
       </div>
     </div>
 
@@ -140,7 +146,7 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   compareA: { load: TeachingLoad[]; programs: ProgramCourseCount[] } | null = null;
   compareB: { load: TeachingLoad[]; programs: ProgramCourseCount[] } | null = null;
 
-  constructor(private api: ApiService, private toast: ToastService) {}
+  constructor(private api: ApiService, private toast: ToastService, private zone: NgZone) {}
 
   ngAfterViewInit() {
     this.api.getAcademicYears().subscribe(years => {
@@ -159,58 +165,69 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
 
   refreshCharts() {
     this.loadingCharts = true;
-    this.charts.forEach(c => c.destroy());
+    this.zone.runOutsideAngular(() => this.charts.forEach(c => c.destroy()));
     this.charts = [];
 
     const filter = { academicYear: this.filterYear, semester: this.filterSemester };
     let pending = 3;
     const done = () => { pending -= 1; if (pending === 0) this.loadingCharts = false; };
 
+    // Chart.js drives its own animation/resize loop (ResizeObserver +
+    // requestAnimationFrame). Those internal callbacks must stay outside
+    // Angular's zone, otherwise zone.js treats every one of them as a
+    // reason to run change detection — under this app's CSS Grid layout
+    // that feedback loop never settles and freezes the tab.
     this.api.getTeachingLoadStats(filter).subscribe(data => {
       this.overloadedLecturers = data.filter(d => d.totalHours > this.overloadThreshold);
-      this.charts.push(new Chart(this.loadChartRef.nativeElement, {
-        type: 'bar',
-        data: {
-          labels: data.map(d => `${d.firstName} ${d.lastName}`),
-          datasets: [{
-            label: 'Total hours',
-            data: data.map(d => d.totalHours),
-            backgroundColor: data.map(d => d.totalHours > this.overloadThreshold ? '#d63031' : '#0984e3')
-          }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
-      }));
+      this.zone.runOutsideAngular(() => {
+        this.charts.push(new Chart(this.loadChartRef.nativeElement, {
+          type: 'bar',
+          data: {
+            labels: data.map(d => `${d.firstName} ${d.lastName}`),
+            datasets: [{
+              label: 'Total hours',
+              data: data.map(d => d.totalHours),
+              backgroundColor: data.map(d => d.totalHours > this.overloadThreshold ? '#d63031' : '#0984e3')
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        }));
+      });
       done();
     });
 
     this.api.getCoursesPerProgram(filter).subscribe(data => {
-      this.charts.push(new Chart(this.programChartRef.nativeElement, {
-        type: 'bar',
-        data: {
-          labels: data.map(d => d.studyProgramName),
-          datasets: [{
-            label: 'Active courses',
-            data: data.map(d => d.activeCourseCount),
-            backgroundColor: '#00b894'
-          }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
-      }));
+      this.zone.runOutsideAngular(() => {
+        this.charts.push(new Chart(this.programChartRef.nativeElement, {
+          type: 'bar',
+          data: {
+            labels: data.map(d => d.studyProgramName),
+            datasets: [{
+              label: 'Active courses',
+              data: data.map(d => d.activeCourseCount),
+              backgroundColor: '#00b894'
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        }));
+      });
       done();
     });
 
     this.api.getSectionsPerType(filter).subscribe(data => {
-      this.charts.push(new Chart(this.typeChartRef.nativeElement, {
-        type: 'pie',
-        data: {
-          labels: data.map(d => d.type),
-          datasets: [{
-            data: data.map(d => d.count),
-            backgroundColor: ['#0984e3', '#00b894', '#fdcb6e']
-          }]
-        },
-        options: { responsive: true }
-      }));
+      this.zone.runOutsideAngular(() => {
+        this.charts.push(new Chart(this.typeChartRef.nativeElement, {
+          type: 'pie',
+          data: {
+            labels: data.map(d => d.type),
+            datasets: [{
+              data: data.map(d => d.count),
+              backgroundColor: ['#0984e3', '#00b894', '#fdcb6e']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        }));
+      });
       done();
     });
   }
@@ -254,6 +271,6 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.charts.forEach(c => c.destroy());
+    this.zone.runOutsideAngular(() => this.charts.forEach(c => c.destroy()));
   }
 }
