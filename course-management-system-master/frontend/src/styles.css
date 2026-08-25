@@ -3,8 +3,23 @@ body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f5f6fa; color: 
 a { text-decoration: none; color: inherit; }
 button { cursor: pointer; }
 
+/* ---- Login page ---- */
+.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #2d3436; }
+.login-card { background: #fff; border-radius: 12px; padding: 36px 32px; width: 340px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+.login-card h1 { display: flex; align-items: center; gap: 8px; font-size: 19px; margin-bottom: 4px; }
+.login-subtitle { color: #8f9ba6; font-size: 13px; margin-bottom: 22px; }
+.login-submit { width: 100%; justify-content: center; padding: 10px; margin-top: 4px; }
+
+/* ---- Sidebar user block ---- */
+.sidebar-user { padding: 14px 20px; border-bottom: 1px solid #636e72; margin-bottom: 6px; }
+.sidebar-user .name { font-size: 14px; font-weight: 600; color: #fff; }
+.sidebar-user .role { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #b2bec3; }
+.sidebar-logout { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; padding: 12px 20px; font-size: 14px; color: #dfe6e9; text-align: left; margin-top: auto; }
+.sidebar-logout:hover { background: #636e72; color: #fff; }
+.sidebar nav { display: flex; flex-direction: column; flex: 1; }
+
 .layout { display: flex; min-height: 100vh; }
-.sidebar { width: 230px; background: #2d3436; color: #dfe6e9; padding: 24px 0; flex-shrink: 0; }
+.sidebar { width: 230px; background: #2d3436; color: #dfe6e9; padding: 24px 0; flex-shrink: 0; display: flex; flex-direction: column; }
 .sidebar h1 { font-size: 16px; padding: 0 20px 20px; border-bottom: 1px solid #636e72; }
 .sidebar nav a { display: block; padding: 12px 20px; font-size: 14px; transition: background .15s; }
 .sidebar nav a:hover, .sidebar nav a.active { background: #636e72; color: #fff; }
@@ -145,6 +160,40 @@ input, select { width: 100%; padding: 9px 10px; border: 1px solid #ccc; border-r
 .detail-meta-card .value { font-size: 18px; font-weight: 600; }
 .link-btn { background: none; border: none; color: #0984e3; padding: 0; font-weight: 500; }
 .link-btn:hover { text-decoration: underline; }
+
+/* ---- Attendance modal ---- */
+.attendance-box {
+  background: #fff; border-radius: 10px; padding: 24px; width: min(640px, 92vw); max-height: 85vh;
+  overflow-y: auto; box-shadow: 0 12px 32px rgba(0,0,0,.25); text-align: left;
+  animation: pop-in .15s ease-out;
+}
+.attendance-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.attendance-header h3 { font-size: 17px; margin-bottom: 4px; }
+.attendance-meta { font-size: 13px; color: #636e72; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+.attendance-status-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.attendance-status-btn {
+  border: 1px solid #dfe6e9; background: #fff; border-radius: 999px; padding: 5px 12px;
+  font-size: 12px; font-weight: 600; color: #636e72;
+}
+.attendance-status-btn.selected.status-present { background: #00b894; border-color: #00b894; color: #fff; }
+.attendance-status-btn.selected.status-absent { background: #d63031; border-color: #d63031; color: #fff; }
+.attendance-status-btn.selected.status-late { background: #fdcb6e; border-color: #fdcb6e; color: #2d3436; }
+.attendance-status-btn.selected.status-excused { background: #0984e3; border-color: #0984e3; color: #fff; }
+.attendance-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+/* ---- Weekly schedule grid (lecturer / student) ---- */
+.week-grid { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 12px; overflow-x: auto; }
+.week-day-col { min-width: 0; }
+.week-day-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #636e72; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #eef0f2; }
+.schedule-entry {
+  background: #fff; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08); border-left: 3px solid #0984e3; cursor: default;
+}
+.schedule-entry.clickable { cursor: pointer; transition: box-shadow .12s, transform .12s; }
+.schedule-entry.clickable:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-1px); }
+.schedule-entry .time { font-size: 12px; font-weight: 700; color: #0984e3; }
+.schedule-entry .course { font-size: 13px; font-weight: 600; margin: 2px 0; }
+.schedule-entry .meta { font-size: 12px; color: #8f9ba6; }
 
 /* ---- Compare view ---- */
 .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }

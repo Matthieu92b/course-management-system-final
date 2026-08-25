@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
-import { Category, TeachingLoad, User } from '../../models/models';
+import { Category, Cohort, TeachingLoad, User } from '../../models/models';
 import { ToastService } from '../../services/toast.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { IconComponent } from '../../components/icon/icon.component';
@@ -32,6 +32,13 @@ const OVERLOAD_THRESHOLD_HOURS = 200;
             <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
           </select>
         </div>
+        <div *ngIf="isStudentCategory(form.categoryId)">
+          <label>Cohort / Class</label>
+          <select [(ngModel)]="form.cohortId" name="cohortId" required>
+            <option [ngValue]="0" disabled>-- select cohort --</option>
+            <option *ngFor="let c of cohorts" [ngValue]="c.id">{{ c.name }} ({{ c.academicYear }})</option>
+          </select>
+        </div>
         <div>
           <button class="btn btn-primary" type="submit">
             <app-icon [name]="editingId ? 'check' : 'plus'" [size]="14"></app-icon>
@@ -52,13 +59,14 @@ const OVERLOAD_THRESHOLD_HOURS = 200;
 
       <ng-container *ngIf="!loading">
         <table *ngIf="filtered.length; else empty">
-          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Category</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Category</th><th>Cohort</th><th></th></tr></thead>
           <tbody>
             <tr *ngFor="let u of paged">
               <td>{{ u.id }}</td>
               <td>{{ u.firstName }} {{ u.lastName }}</td>
               <td>{{ u.email }}</td>
               <td>{{ u.category?.name }}</td>
+              <td>{{ u.cohort?.name || '—' }}</td>
               <td>
                 <button class="btn btn-secondary" *ngIf="u.category?.name === 'LECTURER'" (click)="showLoad(u)">
                   <app-icon name="workload" [size]="13"></app-icon> Workload
@@ -88,8 +96,9 @@ const OVERLOAD_THRESHOLD_HOURS = 200;
 export class UsersComponent implements OnInit {
   users: User[] = [];
   categories: Category[] = [];
+  cohorts: Cohort[] = [];
   load: TeachingLoad | null = null;
-  form = { firstName: '', lastName: '', email: '', password: '', categoryId: 0 };
+  form = { firstName: '', lastName: '', email: '', password: '', categoryId: 0, cohortId: 0 };
   editingId: number | null = null;
   error = '';
   loading = true;
@@ -103,6 +112,7 @@ export class UsersComponent implements OnInit {
   ngOnInit() {
     this.loadUsers();
     this.api.getCategories().subscribe(data => this.categories = data);
+    this.api.getCohorts().subscribe(data => this.cohorts = data);
   }
 
   loadUsers() {
@@ -120,7 +130,8 @@ export class UsersComponent implements OnInit {
       u.firstName.toLowerCase().includes(term) ||
       u.lastName.toLowerCase().includes(term) ||
       u.email.toLowerCase().includes(term) ||
-      (u.category?.name.toLowerCase().includes(term) ?? false)
+      (u.category?.name.toLowerCase().includes(term) ?? false) ||
+      (u.cohort?.name.toLowerCase().includes(term) ?? false)
     );
   }
 
@@ -131,12 +142,20 @@ export class UsersComponent implements OnInit {
 
   onSearch(v: string) { this.search = v; this.page = 1; }
 
+  isStudentCategory(categoryId: number): boolean {
+    return this.categories.find(c => c.id === categoryId)?.name === 'STUDENT';
+  }
+
   save() {
     this.error = '';
     const wasEdit = !!this.editingId;
+    const body = {
+      ...this.form,
+      cohortId: this.isStudentCategory(this.form.categoryId) ? this.form.cohortId : null
+    };
     const req = this.editingId
-      ? this.api.updateUser(this.editingId, this.form)
-      : this.api.createUser(this.form);
+      ? this.api.updateUser(this.editingId, body)
+      : this.api.createUser(body);
     req.subscribe({
       next: () => { this.cancel(); this.loadUsers(); this.toast.success(wasEdit ? 'User updated' : 'User created'); },
       error: err => { this.error = err.error?.message ?? 'Error'; this.toast.error(this.error); }
@@ -145,12 +164,15 @@ export class UsersComponent implements OnInit {
 
   edit(u: User) {
     this.editingId = u.id;
-    this.form = { firstName: u.firstName, lastName: u.lastName, email: u.email, password: '', categoryId: u.category?.id ?? 0 };
+    this.form = {
+      firstName: u.firstName, lastName: u.lastName, email: u.email, password: '',
+      categoryId: u.category?.id ?? 0, cohortId: u.cohort?.id ?? 0
+    };
   }
 
   cancel() {
     this.editingId = null;
-    this.form = { firstName: '', lastName: '', email: '', password: '', categoryId: 0 };
+    this.form = { firstName: '', lastName: '', email: '', password: '', categoryId: 0, cohortId: 0 };
   }
 
   async remove(u: User) {

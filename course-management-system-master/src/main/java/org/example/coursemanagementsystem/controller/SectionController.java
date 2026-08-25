@@ -1,9 +1,13 @@
 package org.example.coursemanagementsystem.controller;
 
 import jakarta.validation.Valid;
+import org.example.coursemanagementsystem.dto.CohortSummaryDto;
 import org.example.coursemanagementsystem.dto.LecturerSummaryDto;
+import org.example.coursemanagementsystem.dto.SectionCohortDto;
 import org.example.coursemanagementsystem.dto.SectionDto;
 import org.example.coursemanagementsystem.entity.Section;
+import org.example.coursemanagementsystem.entity.SectionCohort;
+import org.example.coursemanagementsystem.service.SectionCohortService;
 import org.example.coursemanagementsystem.service.SectionService;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +18,11 @@ import java.util.List;
 public class SectionController {
 
     private final SectionService sectionService;
+    private final SectionCohortService sectionCohortService;
 
-    public SectionController(SectionService sectionService) {
+    public SectionController(SectionService sectionService, SectionCohortService sectionCohortService) {
         this.sectionService = sectionService;
+        this.sectionCohortService = sectionCohortService;
     }
 
     @GetMapping
@@ -50,5 +56,21 @@ public class SectionController {
     @GetMapping("/{id}/lecturer")
     public LecturerSummaryDto getLecturerForSection(@PathVariable Long id) {
         return sectionService.getLecturerForSection(id);
+    }
+
+    // Cohortes/classes rattachees a cette section (base du planning etudiant).
+    @GetMapping("/{id}/cohorts")
+    public List<CohortSummaryDto> getCohortsForSection(@PathVariable Long id) {
+        return sectionCohortService.getCohortsForSection(id);
+    }
+
+    @PostMapping("/{id}/cohorts")
+    public SectionCohort assignCohort(@PathVariable Long id, @Valid @RequestBody SectionCohortDto dto) {
+        return sectionCohortService.assignCohort(id, dto.getCohortId());
+    }
+
+    @DeleteMapping("/{id}/cohorts/{cohortId}")
+    public void unassignCohort(@PathVariable Long id, @PathVariable Integer cohortId) {
+        sectionCohortService.unassignCohort(id, cohortId);
     }
 }

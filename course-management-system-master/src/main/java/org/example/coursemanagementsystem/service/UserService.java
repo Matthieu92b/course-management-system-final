@@ -3,11 +3,14 @@ package org.example.coursemanagementsystem.service;
 import org.example.coursemanagementsystem.dto.TeachingLoadDto;
 import org.example.coursemanagementsystem.dto.UserDto;
 import org.example.coursemanagementsystem.entity.Category;
+import org.example.coursemanagementsystem.entity.Cohort;
 import org.example.coursemanagementsystem.entity.Section;
 import org.example.coursemanagementsystem.entity.User;
 import org.example.coursemanagementsystem.exception.DuplicateResourceException;
+import org.example.coursemanagementsystem.exception.InvalidRequestException;
 import org.example.coursemanagementsystem.exception.ResourceNotFoundException;
 import org.example.coursemanagementsystem.repository.CategoryRepository;
+import org.example.coursemanagementsystem.repository.CohortRepository;
 import org.example.coursemanagementsystem.repository.SectionRepository;
 import org.example.coursemanagementsystem.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -17,16 +20,21 @@ import java.util.List;
 @Service
 public class UserService {
 
+    private static final String STUDENT_CATEGORY = "STUDENT";
+
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final SectionRepository sectionRepository;
+    private final CohortRepository cohortRepository;
 
     public UserService(UserRepository userRepository,
                        CategoryRepository categoryRepository,
-                       SectionRepository sectionRepository) {
+                       SectionRepository sectionRepository,
+                       CohortRepository cohortRepository) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.sectionRepository = sectionRepository;
+        this.cohortRepository = cohortRepository;
     }
 
     public List<User> getAllUsers() {
@@ -48,6 +56,7 @@ public class UserService {
         user.setEmail(dto.getEmail());
         user.setPassword(dto.getPassword());
         user.setCategory(category);
+        user.setCohort(resolveCohort(category, dto.getCohortId()));
 
         return userRepository.save(user);
     }
@@ -62,6 +71,7 @@ public class UserService {
         user.setEmail(dto.getEmail());
         user.setPassword(dto.getPassword());
         user.setCategory(category);
+        user.setCohort(resolveCohort(category, dto.getCohortId()));
 
         return userRepository.save(user);
     }
@@ -94,6 +104,24 @@ public class UserService {
     private Category getCategory(Integer categoryId) {
         return categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id " + categoryId));
+    }
+
+    // Chaque etudiant doit etre rattache a une cohorte/classe ; les autres
+    // categories (ADMIN, LECTURER, ...) n'en ont pas, meme si un cohortId
+    // perime trainait sur le DTO (ex: changement de categorie).
+    private Cohort resolveCohort(Category category, Integer cohortId) {
+        boolean isStudent = STUDENT_CATEGORY.equalsIgnoreCase(category.getName());
+
+        if (!isStudent) {
+            return null;
+        }
+
+        if (cohortId == null) {
+            throw new InvalidRequestException("cohortId is required for STUDENT users");
+        }
+
+        return cohortRepository.findById(cohortId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cohort not found with id " + cohortId));
     }
 
     // L'email doit etre unique : on verifie explicitement plutot que de laisser

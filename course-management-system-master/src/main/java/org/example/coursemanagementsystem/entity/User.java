@@ -25,4 +25,11 @@ public class User {
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    // Cohorte/classe de l'etudiant. Nullable en base pour rester compatible
+    // avec les users non-etudiants (ADMIN, LECTURER) ; obligatoire cote
+    // service quand la categorie resolue est STUDENT.
+    @ManyToOne
+    @JoinColumn(name = "cohort_id")
+    private Cohort cohort;
 }
