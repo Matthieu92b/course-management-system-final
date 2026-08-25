@@ -1,12 +1,19 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  ActiveCourse, Category, Course, Department, Faculty, ProgramCourseCount,
-  Section, SectionTypeCount, StudyProgram, TeachingLoad, User
+  ActiveCourse, ActiveCourseSummary, Category, Course, Department, Faculty, ProgramCourseCount,
+  Section, SectionTypeCount, StatsFilter, StudyProgram, StudyProgramDetail, TeachingLoad, User
 } from '../models/models';
 
 const BASE = 'http://localhost:8080';
+
+function termParams(filter?: StatsFilter): HttpParams {
+  let params = new HttpParams();
+  if (filter?.academicYear != null) params = params.set('academicYear', filter.academicYear);
+  if (filter?.semester != null) params = params.set('semester', filter.semester);
+  return params;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -34,7 +41,8 @@ export class ApiService {
   createStudyProgram(body: { name: string; level: string; departmentId: number }): Observable<StudyProgram> { return this.http.post<StudyProgram>(`${BASE}/study-programs`, body); }
   updateStudyProgram(id: number, body: { name: string; level: string; departmentId: number }): Observable<StudyProgram> { return this.http.put<StudyProgram>(`${BASE}/study-programs/${id}`, body); }
   deleteStudyProgram(id: number): Observable<void> { return this.http.delete<void>(`${BASE}/study-programs/${id}`); }
-  getCoursesForProgram(id: number): Observable<any[]> { return this.http.get<any[]>(`${BASE}/study-programs/${id}/courses`); }
+  getCoursesForProgram(id: number): Observable<ActiveCourseSummary[]> { return this.http.get<ActiveCourseSummary[]>(`${BASE}/study-programs/${id}/courses`); }
+  getStudyProgramDetail(id: number): Observable<StudyProgramDetail> { return this.http.get<StudyProgramDetail>(`${BASE}/study-programs/${id}/detail`); }
 
   // ---- Courses
   getCourses(): Observable<Course[]> { return this.http.get<Course[]>(`${BASE}/courses`); }
@@ -55,10 +63,16 @@ export class ApiService {
 
   // ---- Sections
   getSections(): Observable<Section[]> { return this.http.get<Section[]>(`${BASE}/sections`); }
-  createSection(body: { type: string; hours: number; activeCourseId: number; lecturerId: number }): Observable<Section> {
+  createSection(body: {
+    type: string; hours: number; activeCourseId: number; lecturerId: number;
+    capacity: number; room: string; dayOfWeek: string; startTime: string; endTime: string;
+  }): Observable<Section> {
     return this.http.post<Section>(`${BASE}/sections`, body);
   }
-  updateSection(id: number, body: { type: string; hours: number; activeCourseId: number; lecturerId: number }): Observable<Section> {
+  updateSection(id: number, body: {
+    type: string; hours: number; activeCourseId: number; lecturerId: number;
+    capacity: number; room: string; dayOfWeek: string; startTime: string; endTime: string;
+  }): Observable<Section> {
     return this.http.put<Section>(`${BASE}/sections/${id}`, body);
   }
   deleteSection(id: number): Observable<void> { return this.http.delete<void>(`${BASE}/sections/${id}`); }
@@ -75,7 +89,21 @@ export class ApiService {
   getTeachingLoad(id: number): Observable<TeachingLoad> { return this.http.get<TeachingLoad>(`${BASE}/users/${id}/teaching-load`); }
 
   // ---- Stats
-  getTeachingLoadStats(): Observable<TeachingLoad[]> { return this.http.get<TeachingLoad[]>(`${BASE}/stats/teaching-load`); }
-  getCoursesPerProgram(): Observable<ProgramCourseCount[]> { return this.http.get<ProgramCourseCount[]>(`${BASE}/stats/courses-per-program`); }
-  getSectionsPerType(): Observable<SectionTypeCount[]> { return this.http.get<SectionTypeCount[]>(`${BASE}/stats/sections-per-type`); }
+  getTeachingLoadStats(filter?: StatsFilter): Observable<TeachingLoad[]> {
+    return this.http.get<TeachingLoad[]>(`${BASE}/stats/teaching-load`, { params: termParams(filter) });
+  }
+  getCoursesPerProgram(filter?: StatsFilter): Observable<ProgramCourseCount[]> {
+    return this.http.get<ProgramCourseCount[]>(`${BASE}/stats/courses-per-program`, { params: termParams(filter) });
+  }
+  getSectionsPerType(filter?: StatsFilter): Observable<SectionTypeCount[]> {
+    return this.http.get<SectionTypeCount[]>(`${BASE}/stats/sections-per-type`, { params: termParams(filter) });
+  }
+  getAcademicYears(): Observable<number[]> { return this.http.get<number[]>(`${BASE}/stats/academic-years`); }
+
+  exportTeachingLoadCsv(filter?: StatsFilter): Observable<Blob> {
+    return this.http.get(`${BASE}/stats/teaching-load/export`, { params: termParams(filter), responseType: 'blob' });
+  }
+  exportCoursesPerProgramCsv(filter?: StatsFilter): Observable<Blob> {
+    return this.http.get(`${BASE}/stats/courses-per-program/export`, { params: termParams(filter), responseType: 'blob' });
+  }
 }

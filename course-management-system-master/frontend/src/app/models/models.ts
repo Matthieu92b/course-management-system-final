@@ -43,6 +43,11 @@ export interface Section {
   hours: number;
   activeCourse?: ActiveCourse;
   lecturer?: User;
+  capacity?: number;
+  room?: string;
+  dayOfWeek?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface User {
@@ -70,4 +75,57 @@ export interface ProgramCourseCount {
 export interface SectionTypeCount {
   type: string;
   count: number;
+}
+
+export interface ActiveCourseSummary {
+  activeCourseId: number;
+  courseId: number;
+  code: string;
+  title: string;
+  credits: number;
+  academicYear: number;
+  semester: number;
+  typology: string;
+}
+
+export interface SectionSummary {
+  id: number;
+  type: string;
+  hours: number;
+  courseCode: string;
+  courseTitle: string;
+  academicYear: number;
+  semester: number;
+  capacity?: number;
+  room?: string;
+  dayOfWeek?: string;
+  startTime?: string;
+  endTime?: string;
+  lecturerId: number;
+  lecturerName: string;
+}
+
+export interface LecturerSummary {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface StudyProgramDetail {
+  id: number;
+  name: string;
+  level: string;
+  departmentId: number;
+  departmentName: string;
+  facultyId: number;
+  facultyName: string;
+  activeCourses: ActiveCourseSummary[];
+  sections: SectionSummary[];
+  lecturers: LecturerSummary[];
+}
+
+export interface StatsFilter {
+  academicYear?: number | null;
+  semester?: number | null;
 }
