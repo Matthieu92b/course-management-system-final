@@ -26,6 +26,10 @@ const ICONS: Record<string, string> = {
   workload: '<path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/><path d="M12 7v5l3.5 2"/>',
   compare: '<path d="M9 3v18"/><path d="M15 3v18"/><path d="M5 8h4M15 8h4M5 16h4M15 16h4"/>',
   eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  cohort: '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c0-3 2.4-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><path d="M10.5 14.9c.9-.2 1.9-.2 2.8 0M13.2 14.7c2.7.4 4.3 2.5 4.3 5.3"/>',
+  calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/>',
+  clipboard: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m9 13 2 2 4-4"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
 };
 
 @Component({

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
-import { ActiveCourse, Section, User } from '../../models/models';
+import { ActiveCourse, Cohort, CohortSummary, Section, User } from '../../models/models';
 import { ToastService } from '../../services/toast.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { IconComponent } from '../../components/icon/icon.component';
@@ -83,6 +83,7 @@ import { PaginationComponent } from '../../components/pagination/pagination.comp
               <td>{{ s.dayOfWeek ? (s.dayOfWeek + ' ' + s.startTime + '-' + s.endTime) : '—' }}</td>
               <td>{{ s.lecturer?.firstName }} {{ s.lecturer?.lastName }}</td>
               <td>
+                <button class="btn btn-secondary" (click)="showCohorts(s)"><app-icon name="cohort" [size]="13"></app-icon> Cohorts</button>
                 <button class="btn btn-secondary" (click)="edit(s)"><app-icon name="edit" [size]="13"></app-icon> Edit</button>
                 <button class="btn btn-danger" (click)="remove(s)"><app-icon name="trash" [size]="13"></app-icon> Delete</button>
               </td>
@@ -93,12 +94,39 @@ import { PaginationComponent } from '../../components/pagination/pagination.comp
         <app-pagination [page]="page" [pageSize]="pageSize" [length]="filtered.length" (pageChange)="page = $event"></app-pagination>
       </ng-container>
     </div>
+
+    <div class="card" *ngIf="selectedSection">
+      <h3>Cohorts following section #{{ selectedSection.id }} ({{ selectedSection.activeCourse?.course?.code }})</h3>
+
+      <table *ngIf="selectedSectionCohorts.length; else noCohorts">
+        <thead><tr><th>Cohort</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let c of selectedSectionCohorts">
+            <td>{{ c.name }}</td>
+            <td><button class="btn btn-danger" (click)="unassignCohort(c)"><app-icon name="trash" [size]="13"></app-icon> Remove</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #noCohorts><p class="empty-state">No cohort assigned to this section yet.</p></ng-template>
+
+      <form (ngSubmit)="assignCohort()" style="margin-top: 14px;">
+        <div>
+          <label>Add cohort</label>
+          <select [(ngModel)]="cohortToAdd" name="cohortToAdd" required>
+            <option [ngValue]="0" disabled>-- select cohort --</option>
+            <option *ngFor="let c of availableCohorts" [ngValue]="c.id">{{ c.name }} ({{ c.academicYear }})</option>
+          </select>
+        </div>
+        <div><button class="btn btn-primary" type="submit"><app-icon name="plus" [size]="14"></app-icon> Add</button></div>
+      </form>
+    </div>
   `
 })
 export class SectionsComponent implements OnInit {
   sections: Section[] = [];
   activeCourses: ActiveCourse[] = [];
   lecturers: User[] = [];
+  allCohorts: Cohort[] = [];
   types = ['THEORY', 'LAB', 'SEMINAR'];
   days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
   form = {
@@ -112,6 +140,10 @@ export class SectionsComponent implements OnInit {
   page = 1;
   pageSize = 10;
 
+  selectedSection: Section | null = null;
+  selectedSectionCohorts: CohortSummary[] = [];
+  cohortToAdd = 0;
+
   constructor(private api: ApiService, private toast: ToastService, private confirm: ConfirmService) {}
 
   ngOnInit() {
@@ -119,6 +151,49 @@ export class SectionsComponent implements OnInit {
     this.api.getActiveCourses().subscribe(data => this.activeCourses = data);
     // seuls les users de categorie LECTURER sont proposables comme enseignants
     this.api.getUsers().subscribe(data => this.lecturers = data.filter(u => u.category?.name === 'LECTURER'));
+    this.api.getCohorts().subscribe(data => this.allCohorts = data);
+  }
+
+  get availableCohorts(): Cohort[] {
+    const assignedIds = new Set(this.selectedSectionCohorts.map(c => c.id));
+    return this.allCohorts.filter(c => !assignedIds.has(c.id));
+  }
+
+  showCohorts(s: Section) {
+    this.selectedSection = s;
+    this.loadSectionCohorts(s.id);
+  }
+
+  loadSectionCohorts(sectionId: number) {
+    this.api.getCohortsForSection(sectionId).subscribe({
+      next: data => this.selectedSectionCohorts = data,
+      error: () => this.toast.error('Failed to load cohorts for this section')
+    });
+  }
+
+  assignCohort() {
+    if (!this.selectedSection || !this.cohortToAdd) return;
+    this.api.assignCohortToSection(this.selectedSection.id, this.cohortToAdd).subscribe({
+      next: () => {
+        this.cohortToAdd = 0;
+        this.loadSectionCohorts(this.selectedSection!.id);
+        this.toast.success('Cohort assigned to section');
+      },
+      error: err => this.toast.error(err.error?.message ?? 'Failed to assign cohort')
+    });
+  }
+
+  async unassignCohort(cohort: CohortSummary) {
+    if (!this.selectedSection) return;
+    const ok = await this.confirm.ask(`Remove cohort "${cohort.name}" from this section?`, { danger: true, confirmLabel: 'Remove' });
+    if (!ok) return;
+    this.api.unassignCohortFromSection(this.selectedSection.id, cohort.id).subscribe({
+      next: () => {
+        this.loadSectionCohorts(this.selectedSection!.id);
+        this.toast.success('Cohort removed from section');
+      },
+      error: err => this.toast.error(err.error?.message ?? 'Failed to remove cohort')
+    });
   }
 
   load() {

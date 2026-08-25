@@ -25,4 +25,9 @@ public class UserDto {
 
     @NotNull(message = "categoryId is required")
     private Integer categoryId;
+
+    // Requis uniquement quand la categorie resolue est STUDENT (verifie
+    // cote service, puisque la validation Bean Validation ne connait pas
+    // encore la categorie a ce stade).
+    private Integer cohortId;
 }

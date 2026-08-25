@@ -2,8 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  ActiveCourse, ActiveCourseSummary, Category, Course, Department, Faculty, ProgramCourseCount,
-  Section, SectionTypeCount, StatsFilter, StudyProgram, StudyProgramDetail, TeachingLoad, User
+  ActiveCourse, ActiveCourseSummary, AppointmentDetail, Appointment, AttendanceEntry, AttendanceRecord,
+  Category, Cohort, CohortSummary, Course, Department, Faculty, LoginResponse, ProgramCourseCount,
+  ScheduleEntry, Section, SectionTypeCount, StatsFilter, StudyProgram, StudyProgramDetail, TeachingLoad, User
 } from '../models/models';
 
 const BASE = 'http://localhost:8080';
@@ -79,14 +80,67 @@ export class ApiService {
 
   // ---- Users
   getUsers(): Observable<User[]> { return this.http.get<User[]>(`${BASE}/users`); }
-  createUser(body: { firstName: string; lastName: string; email: string; password: string; categoryId: number }): Observable<User> {
+  createUser(body: { firstName: string; lastName: string; email: string; password: string; categoryId: number; cohortId?: number | null }): Observable<User> {
     return this.http.post<User>(`${BASE}/users`, body);
   }
-  updateUser(id: number, body: { firstName: string; lastName: string; email: string; password: string; categoryId: number }): Observable<User> {
+  updateUser(id: number, body: { firstName: string; lastName: string; email: string; password: string; categoryId: number; cohortId?: number | null }): Observable<User> {
     return this.http.put<User>(`${BASE}/users/${id}`, body);
   }
   deleteUser(id: number): Observable<void> { return this.http.delete<void>(`${BASE}/users/${id}`); }
   getTeachingLoad(id: number): Observable<TeachingLoad> { return this.http.get<TeachingLoad>(`${BASE}/users/${id}/teaching-load`); }
+
+  // ---- Auth
+  login(email: string, password: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${BASE}/auth/login`, { email, password });
+  }
+
+  // ---- Cohorts
+  getCohorts(): Observable<Cohort[]> { return this.http.get<Cohort[]>(`${BASE}/cohorts`); }
+  createCohort(body: { name: string; studyProgramId: number; academicYear: number }): Observable<Cohort> {
+    return this.http.post<Cohort>(`${BASE}/cohorts`, body);
+  }
+  updateCohort(id: number, body: { name: string; studyProgramId: number; academicYear: number }): Observable<Cohort> {
+    return this.http.put<Cohort>(`${BASE}/cohorts/${id}`, body);
+  }
+  deleteCohort(id: number): Observable<void> { return this.http.delete<void>(`${BASE}/cohorts/${id}`); }
+
+  // ---- Section <-> Cohort assignment
+  getCohortsForSection(sectionId: number): Observable<CohortSummary[]> {
+    return this.http.get<CohortSummary[]>(`${BASE}/sections/${sectionId}/cohorts`);
+  }
+  assignCohortToSection(sectionId: number, cohortId: number): Observable<void> {
+    return this.http.post<void>(`${BASE}/sections/${sectionId}/cohorts`, { cohortId });
+  }
+  unassignCohortFromSection(sectionId: number, cohortId: number): Observable<void> {
+    return this.http.delete<void>(`${BASE}/sections/${sectionId}/cohorts/${cohortId}`);
+  }
+
+  // ---- Appointments
+  getAppointments(): Observable<Appointment[]> { return this.http.get<Appointment[]>(`${BASE}/appointments`); }
+  createAppointment(body: { sectionId: number; date: string }): Observable<Appointment> {
+    return this.http.post<Appointment>(`${BASE}/appointments`, body);
+  }
+  updateAppointment(id: number, body: { sectionId: number; date: string }): Observable<Appointment> {
+    return this.http.put<Appointment>(`${BASE}/appointments/${id}`, body);
+  }
+  deleteAppointment(id: number): Observable<void> { return this.http.delete<void>(`${BASE}/appointments/${id}`); }
+  getAppointmentDetail(id: number): Observable<AppointmentDetail> {
+    return this.http.get<AppointmentDetail>(`${BASE}/appointments/${id}/detail`);
+  }
+  getLecturerSchedule(lecturerId: number): Observable<ScheduleEntry[]> {
+    return this.http.get<ScheduleEntry[]>(`${BASE}/appointments/lecturer/${lecturerId}`);
+  }
+  getStudentSchedule(studentId: number): Observable<ScheduleEntry[]> {
+    return this.http.get<ScheduleEntry[]>(`${BASE}/appointments/student/${studentId}`);
+  }
+
+  // ---- Attendance
+  getAttendance(appointmentId: number): Observable<AttendanceRecord[]> {
+    return this.http.get<AttendanceRecord[]>(`${BASE}/appointments/${appointmentId}/attendance`);
+  }
+  saveAttendance(appointmentId: number, entries: AttendanceEntry[]): Observable<AttendanceRecord[]> {
+    return this.http.post<AttendanceRecord[]>(`${BASE}/appointments/${appointmentId}/attendance`, { entries });
+  }
 
   // ---- Stats
   getTeachingLoadStats(filter?: StatsFilter): Observable<TeachingLoad[]> {
