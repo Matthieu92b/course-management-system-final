@@ -33,6 +33,15 @@ input, select { width: 100%; padding: 9px 10px; border: 1px solid #ccc; border-r
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
 .chart-card canvas { max-height: 300px; }
+/* Chart.js (responsive: true) needs a positioned ancestor with a fixed
+   height, otherwise its own resize handling can feed back into itself and
+   grow the canvas indefinitely, freezing the tab. CSS Grid items also
+   default to min-width: auto, which lets the canvas's own intrinsic size
+   influence the grid track width that Chart.js then re-measures — the
+   other half of the same feedback loop — so it must be reset to 0. */
+.chart-card { min-width: 0; }
+.chart-canvas-wrap { position: relative; height: 280px; min-width: 0; }
+.chart-spinner-overlay { position: absolute; inset: 0; background: #fff; }
 
 /* ---- Sidebar icons ---- */
 .sidebar h1 { display: flex; align-items: center; gap: 10px; }
